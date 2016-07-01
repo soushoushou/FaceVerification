@@ -1,7 +1,68 @@
 # -*- coding: utf-8 -*-
+from facepp import API
+from facepp import File
+
+dataBasePath = 'E:\\code\\Python\\FaceVerification\\data\\'
+groupName = 'alwTest2'
 
 
-dataBasePath = 'E:\\中兴捧月-人工智能-测试数据\\人工智能大赛-人脸认证\\人脸认证-第一期测试数据\\'
+'''
+描述：是否需要训练
+参数：[out]True,需要训练，False，不需要训练
+'''
+def isNeedTrain(facepp):
+    flag = True
+    groupDict = facepp.info.get_group_list()
+    for group in groupDict['group']:
+        if group['group_name'] == groupName:
+            flag = False
+            break
+    if flag:
+        facepp.group.create(group_name = groupName)
+        return True
+    return False
+
+'''
+描述：训练数据集
+参数：[in]trainDataPath,str,训练数据集的路径
+'''
+def train(trainDataPath):
+    dataSet = phraseDataList(trainDataPath)
+    for data in dataSet:
+        pic1Path = data['pic1']
+        pic2Path = data['pic2']
+        result1 = facepp.detection.detect(img=File(pic1Path), mode = 'oneface')
+        result2 = facepp.detection.detect(img=File(pic2Path), mode = 'oneface')
+        face_id1 = None
+        face_id2 = None
+        if len(result1['face']) > 0:
+            face_id1 = result1['face'][0]['face_id']
+        if len(result2['face']) > 0:
+            face_id2 = result2['face'][0]['face_id']
+        if face_id1 is not None and face_id2 is not None:
+            #训练集label为1时就往group里创建两个名字一样的人
+            if data['label'] == '1':
+                facepp.person.create(group_name = groupName,face_id = [face_id1,face_id2])
+
+
+'''
+描述：初始化face++,默认创建test组
+参数：[in]API_KEY,str
+      [in]API_SECRET,str
+      [out]api,face++接口实例
+      [out]flag,,是否需要训练
+'''
+def initFacepp(API_KEY,API_SECRET):
+    if API_KEY is None:
+        API_KEY='4217654378594ee30144b2309472cc3a'
+    if API_SECRET is None:
+        API_SECRET='m7ZqIyi6rMcANlPhsgVnKfT7suV6o3lU'
+    api = API(API_KEY, API_SECRET)
+
+    flag = True
+    #创建组
+    flag = isNeedTrain(facepp = api)
+    return api,flag
 
 '''
 描述：解析并读取数据集
@@ -17,7 +78,7 @@ def phraseDataList(dataListPath):
             #如果一行为换行符说明已到头，不继续解析
             if line == '\n':
                 break
-            #已:将字符串分割
+            #以:将字符串分割
             tmpList = line.split(':')
             tmpList[0] = tmpList[0].replace('/','\\')
             #得到第一幅图的绝对路径
@@ -31,18 +92,25 @@ def phraseDataList(dataListPath):
             tmpDict['label'] = tmpList[2].strip('\n')
             dataSet.append(tmpDict)
     finally:
-        dataFile.close( )
+        dataFile.close()
     return  dataSet
 
 
 if __name__=='__main__':
-    dataSet = phraseDataList(dataBasePath+'datalist.txt')
+    facepp,needTrain = initFacepp(None,None)
+    if needTrain == True:
+        train(dataBasePath+'trainDataList.txt')
 
-    #测试phraseDataList是否正确
-    if dataSet is not None:
-        for dataLine in dataSet:
-            print '--'*30
-            print dataLine['pic1']
-            print dataLine['pic2']
-            print dataLine['label']
-            print '--'*30
+    result = facepp.recognition.train(group_name = groupName, type = 'all')
+    session_id = result['session_id']
+    facepp.wait_async(session_id)
+
+    #此处可以撸测试集,判断识别结果的人名是否一致
+    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\1414931_035.jpg'), group_name = groupName)
+    pName1 = result['face'][0]['candidate'][0]['person_name']
+    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\1412809_024.jpg'), group_name = groupName)
+    pName2 = result['face'][0]['candidate'][0]['person_name']
+    if pName1 == pName2:
+        print 1
+    else:
+        print 0
