@@ -3,7 +3,7 @@ from facepp import API
 from facepp import File
 
 dataBasePath = 'E:\\code\\Python\\FaceVerification\\data\\'
-groupName = 'alwTest2'
+groupName = 'alwTest3'
 
 
 '''
@@ -99,16 +99,16 @@ def phraseDataList(dataListPath):
 if __name__=='__main__':
     facepp,needTrain = initFacepp(None,None)
     if needTrain == True:
-        train(dataBasePath+'trainDataList.txt')
+        train(dataBasePath+'datalist.txt')
 
     result = facepp.recognition.train(group_name = groupName, type = 'all')
     session_id = result['session_id']
     facepp.wait_async(session_id)
 
     #此处可以撸测试集,判断识别结果的人名是否一致
-    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\1414931_035.jpg'), group_name = groupName)
+    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\0088298_057.jpg'), group_name = groupName)
     pName1 = result['face'][0]['candidate'][0]['person_name']
-    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\1412809_024.jpg'), group_name = groupName)
+    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\0088298_019.jpg'), group_name = groupName)
     pName2 = result['face'][0]['candidate'][0]['person_name']
     if pName1 == pName2:
         print 1
