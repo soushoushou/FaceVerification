@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from facepp import API
 from facepp import File
+import os
+import time
 
 dataBasePath = 'E:\\code\\Python\\FaceVerification\\data\\'
-groupName = 'alwTest3'
+groupName = 'alwTestalw'
 
 
 '''
@@ -27,22 +29,23 @@ def isNeedTrain(facepp):
 参数：[in]trainDataPath,str,训练数据集的路径
 '''
 def train(trainDataPath):
-    dataSet = phraseDataList(trainDataPath)
-    for data in dataSet:
-        pic1Path = data['pic1']
-        pic2Path = data['pic2']
-        result1 = facepp.detection.detect(img=File(pic1Path), mode = 'oneface')
-        result2 = facepp.detection.detect(img=File(pic2Path), mode = 'oneface')
-        face_id1 = None
-        face_id2 = None
-        if len(result1['face']) > 0:
-            face_id1 = result1['face'][0]['face_id']
-        if len(result2['face']) > 0:
-            face_id2 = result2['face'][0]['face_id']
-        if face_id1 is not None and face_id2 is not None:
-            #训练集label为1时就往group里创建两个名字一样的人
-            if data['label'] == '1':
-                facepp.person.create(group_name = groupName,face_id = [face_id1,face_id2])
+    personCount = 0
+    for parent,dirnames,filenames in os.walk(trainDataPath):    #三个参数：分别返回1.父目录 2.所有文件夹名字（不含路径） 3.所有文件名字
+        for dirname in dirnames:
+            personCount+=1
+            if personCount > 100:
+                break
+            faceList = []
+            for parent2,dirnames2,filenames2 in os.walk(trainDataPath+'\\'+dirname):
+                for filename2 in filenames2:
+                    result = facepp.detection.detect(img=File(trainDataPath+'\\'+dirname+'\\'+filename2), mode = 'oneface')
+                    if len(result['face']) > 0:
+                        faceList.append(result['face'][0]['face_id'])
+            if len(faceList)>0:
+                facepp.person.create(face_id = faceList,group_name = groupName,person_name = dirname)
+    session_id = facepp.train.identify(group_name = groupName)
+    facepp.wait_async(session_id['session_id'])
+
 
 
 '''
@@ -95,22 +98,31 @@ def phraseDataList(dataListPath):
         dataFile.close()
     return  dataSet
 
-
+count = 0   #正确次数
 if __name__=='__main__':
-    facepp,needTrain = initFacepp(None,None)
+    facepp,needTrain = initFacepp(None,None)  
     if needTrain == True:
-        train(dataBasePath+'datalist.txt')
-
-    result = facepp.recognition.train(group_name = groupName, type = 'all')
-    session_id = result['session_id']
-    facepp.wait_async(session_id)
-
-    #此处可以撸测试集,判断识别结果的人名是否一致
-    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\0088298_057.jpg'), group_name = groupName)
-    pName1 = result['face'][0]['candidate'][0]['person_name']
-    result = facepp.recognition.recognize(img = File(dataBasePath+'pictures\\0088298_019.jpg'), group_name = groupName)
-    pName2 = result['face'][0]['candidate'][0]['person_name']
-    if pName1 == pName2:
-        print 1
-    else:
-        print 0
+        train(dataBasePath+'trainPicutre')
+    dataSet = phraseDataList(dataBasePath+'datalist.txt')
+    for data in dataSet:
+        start = time.clock()
+        result1 = facepp.recognition.identify(img = File(data['pic1']),group_name = groupName)
+        result2 = facepp.recognition.identify(img = File(data['pic2']),group_name = groupName)
+        flag = False
+        realResult = '0'
+        confidence = 0
+        if len(result1['face'])>0 and len(result2['face'])>0:
+            for personN1 in result1['face'][0]['candidate']:
+                for personN2 in result2['face'][0]['candidate']:
+                    if personN1['person_name'] == personN2['person_name']:
+                        confidence = personN1['confidence']+50.0
+                        flag = True
+                        break
+        end = time.clock()
+        if flag == True:
+            realResult = '1'
+        if realResult == data['label']:
+            count+=1
+        print 'tset result:%s fact result:%s confidence:%f time:%.03f' % (realResult,data['label'], confidence, end-start)
+        #print 'test result:'+realResult+' fact result:'+data['label']+' confidence:'+str(confidence)+' time:'+str(end-start)
+    print 'correct count:'+str(count)+' correct ratio:'+str(count/6000.0)
