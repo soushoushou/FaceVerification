@@ -489,7 +489,6 @@ def train(facepp,trainDataPath):
                         landmark1 = facepp.detection.landmark(face_id = faceid1)
                         landmrak2 = facepp.detection.landmark(face_id = faceid2)
                         vec = createTrainVec(result1,result2,landmark1,landmark2)
-                        vec = createTrainVec(result1,result2)
                         if vec is not None:
                             trainSet.append(vec)
                             trainLabel.append('0')
