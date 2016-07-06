@@ -585,16 +585,22 @@ if __name__=='__main__':
     trainSet = None
     trainLabel = None
     if isNeedTrain():
-        trainSet,trainLabel = train(trainDataPath=dataBasePath+'trainPicture2',facepp = facepp)
+        trainSet,trainLabel = train(trainDataPath=dataBasePath+'trainPictrue3',facepp = facepp)
     else:
         trainSet = loadTrainFile()
         trainLabel = loadLabelFile()
-    dataSet = phraseDataList(dataBasePath+'datalist.txt')
+    dataSet = phraseDataList(dataBasePath+'datalist2.txt')
     for data in dataSet:
         testResult = 0
+        vec = None
         result1 = facepp.detection.detect(img = File(data['pic1']),attribute = ['gender', 'age', 'race', 'smiling', 'glass', 'pose'])
         result2 = facepp.detection.detect(img = File(data['pic2']),attribute = ['gender', 'age', 'race', 'smiling', 'glass', 'pose'])
-        vec = createTrainVec(result1,result2)
+        if len(result1['face']) > 0 and len(result2['face']) > 0:
+            faceid1 = result1['face'][0]['face_id']
+            faceid2 = result2['face'][0]['face_id']
+            landmark1 = facepp.detection.landmark(face_id = faceid1)
+            landmrak2 = facepp.detection.landmark(face_id = faceid2)
+            vec = createTrainVec(result1,result2,landmark1,landmrak2)
         start = time.clock()
         if vec is not None:
             testResult = kNNClassifyer(vec, trainSet, trainLabel, 5)
