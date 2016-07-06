@@ -371,7 +371,7 @@ def autoNormalize(dataSet):
 描述：dump模型文件
 '''
 def dumpTrainFile(trainSet):
-    fl=open(trainSetPath, 'w')
+    fl=open(trainSetPath, 'a')
     for line in trainSet:
         for value in line:
             fl.write(str(value))
@@ -383,7 +383,7 @@ def dumpTrainFile(trainSet):
 描述：dump标签文件
 '''
 def dumpLabelFile(trainLabel):
-    fl=open(trainLabelPath, 'w')
+    fl=open(trainLabelPath, 'a')
     for label in trainLabel:
         fl.write(str(label))
         fl.write(',')
@@ -466,7 +466,10 @@ def train(facepp,trainDataPath):
                     tmpCount = tmpCount+1
                     print tmpCount
                     if tmpCount%1000 == 0:
-                        print 'sleep 10s in postive'
+                        dumpTrainFile(trainSet)
+                        dumpLabelFile(trainLabel)
+                        trainSet = []
+                        trainLabel = []
                         time.sleep(10)
                 i+=1
 
@@ -496,13 +499,18 @@ def train(facepp,trainDataPath):
                     tmpCount+=1
                     print tmpCount
                     if tmpCount%1000 == 0:
-                        print 'sleep 10s in negtive'
+                        dumpTrainFile(trainSet)
+                        dumpLabelFile(trainLabel)
+                        trainSet = []
+                        trainLabel = []
                         time.sleep(10)
                 k+=1
             j+=1
         i+=1
+
     dumpTrainFile(trainSet)
     dumpLabelFile(trainLabel)
+    
 
     return array(trainSet),array(trainLabel)
 
@@ -585,11 +593,11 @@ if __name__=='__main__':
     trainSet = None
     trainLabel = None
     if isNeedTrain():
-        trainSet,trainLabel = train(trainDataPath=dataBasePath+'trainPictrue3',facepp = facepp)
+        trainSet,trainLabel = train(trainDataPath=dataBasePath+'trainPicture2',facepp = facepp)
     else:
         trainSet = loadTrainFile()
         trainLabel = loadLabelFile()
-    dataSet = phraseDataList(dataBasePath+'datalist2.txt')
+    dataSet = phraseDataList(dataBasePath+'datalist.txt')
     for data in dataSet:
         testResult = 0
         vec = None
